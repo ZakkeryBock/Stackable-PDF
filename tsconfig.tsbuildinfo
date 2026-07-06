@@ -1,0 +1,1 @@
+{"root":["./src/app.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/combiner.tsx","./src/components/converter.tsx","./src/components/editor.tsx","./src/components/filedrop.tsx","./src/components/signaturepad.tsx","./src/lib/images.ts","./src/lib/pdf.ts","./src/lib/render.ts","./src/lib/util.ts"],"version":"5.9.3"}

@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm --version)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx vite *)",
+      "Bash(echo \"EXIT:$?\")",
+      "Bash(npm run *)",
+      "Bash(echo \"started dev server, pid $!\")",
+      "Bash(node test-node.mjs)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/)",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:5173/src/main.tsx)",
+      "Bash(curl -s http://localhost:5173/src/lib/render.ts)",
+      "Bash(chmod +x start.command)",
+      "Bash(npx electron *)",
+      "Bash(npx electron-builder *)",
+      "Bash(node -e \"console.log\\(require.resolve\\('electron'\\)\\)\")",
+      "Bash(rm -rf release)",
+      "Bash(node test-server.cjs)",
+      "Bash(npx asar *)",
+      "Bash(grep -iE \"^\\\\\\\\\\\\\\\\node_modules|^\\\\\\\\\\\\\\\\dist|^\\\\\\\\\\\\\\\\electron|^\\\\\\\\\\\\\\\\package\")",
+      "Bash(awk -F'\\\\\\\\' '{print $2}')",
+      "Bash(rm -f \"release/Stackable-PDF-Tools-Windows.zip\")",
+      "Bash(node -e \"const p=require\\('./package.json'\\); console.log\\(Object.entries\\(p.scripts\\).map\\(\\([k,v]\\)=>'  '+k+': '+v\\).join\\('\\\\n'\\)\\)\")",
+      "Bash(CSC_IDENTITY_AUTO_DISCOVERY=false npx electron-builder --config.win.target=nsis)",
+      "Bash(sed -n '1,80p' node_modules/app-builder-lib/out/binDownload.js)",
+      "Bash(grep -rn \"winCodeSign\\\\|2.6.0\" node_modules/app-builder-lib/out/binDownload.js)"
+    ]
+  }
+}
