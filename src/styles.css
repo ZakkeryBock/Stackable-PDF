@@ -485,6 +485,18 @@ a {
   padding: 9px 10px;
 }
 
+.field input[type='date'] {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  padding: 9px 10px;
+  color-scheme: dark;
+}
+
 .field input[type='color'] {
   width: 44px;
   height: 34px;
@@ -512,6 +524,36 @@ a {
   border: 1px solid var(--border);
   touch-action: none;
   cursor: crosshair;
+}
+
+/* ---------- Update banner ---------- */
+.update-banner {
+  background: var(--brand-soft);
+  border: 1px solid var(--brand);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 18px;
+  font-size: 14px;
+}
+
+.update-banner a {
+  font-weight: 600;
+}
+
+/* ---------- Library ---------- */
+.libitem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.libitem .name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* ---------- Modal ---------- */

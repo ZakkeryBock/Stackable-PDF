@@ -5,6 +5,7 @@ import { SignaturePad, type SignatureResult } from './SignaturePad'
 import { loadPdf, renderPage, type LoadedPdf } from '../lib/render'
 import { downloadBytes } from '../lib/pdf'
 import { uid } from '../lib/util'
+import { loadLibrary, saveLibraryItem, removeLibraryItem, type LibraryItem } from '../lib/library'
 
 type TextAnno = {
   id: string
@@ -15,6 +16,17 @@ type TextAnno = {
   text: string
   size: number // css px
   color: string // #rrggbb
+}
+type DateAnno = {
+  id: string
+  type: 'date'
+  page: number
+  x: number
+  y: number
+  text: string // formatted for display/export
+  value: string // yyyy-mm-dd, backs the date picker
+  size: number
+  color: string
 }
 type SigAnno = {
   id: string
@@ -28,7 +40,13 @@ type SigAnno = {
   natW: number
   natH: number
 }
-type Anno = TextAnno | SigAnno
+type Anno = TextAnno | DateAnno | SigAnno
+
+function formatDate(value: string): string {
+  const [y, m, d] = value.split('-').map(Number)
+  if (!y || !m || !d) return value
+  return new Date(y, m - 1, d).toLocaleDateString()
+}
 
 export function Editor() {
   const [bytes, setBytes] = useState<ArrayBuffer | null>(null)
@@ -43,6 +61,7 @@ export function Editor() {
   const [showSig, setShowSig] = useState(false)
   const [busy, setBusy] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
+  const [library, setLibrary] = useState<LibraryItem[]>(() => loadLibrary())
 
   const containerRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -126,9 +145,99 @@ export function Editor() {
     setSelected(a.id)
   }
 
+  function addDate() {
+    if (!pdf) return
+    const size = Math.max(16, pageSize.h * 0.028)
+    const value = new Date().toISOString().slice(0, 10)
+    const a: DateAnno = {
+      id: uid('d'),
+      type: 'date',
+      page,
+      x: pageSize.w * 0.5 - 60,
+      y: pageSize.h * 0.5,
+      text: formatDate(value),
+      value,
+      size,
+      color: '#111827',
+    }
+    setAnnos((prev) => [...prev, a])
+    setSelected(a.id)
+  }
+
   function removeAnno(id: string) {
     setAnnos((prev) => prev.filter((a) => a.id !== id))
     if (selected === id) setSelected(null)
+  }
+
+  // --- Reusable library: save any annotation as a named component, insert it elsewhere ---
+  function saveToLibrary(a: Anno) {
+    const name = window.prompt(
+      'Name this component:',
+      a.type === 'sig' ? 'Signature' : a.type === 'date' ? 'Date' : a.text.slice(0, 24) || 'Text',
+    )
+    if (!name) return
+    if (a.type === 'sig') {
+      saveLibraryItem({ name, kind: 'sig', dataUrl: a.dataUrl, natW: a.natW, natH: a.natH })
+    } else if (a.type === 'date') {
+      saveLibraryItem({ name, kind: 'date', text: a.text, value: a.value, size: a.size, color: a.color })
+    } else {
+      saveLibraryItem({ name, kind: 'text', text: a.text, size: a.size, color: a.color })
+    }
+    setLibrary(loadLibrary())
+  }
+
+  function insertFromLibrary(item: LibraryItem) {
+    if (!pdf) return
+    if (item.kind === 'sig') {
+      const w = Math.min(pageSize.w * 0.35, item.natW)
+      const h = w * (item.natH / item.natW)
+      const a: SigAnno = {
+        id: uid('s'),
+        type: 'sig',
+        page,
+        x: pageSize.w * 0.5 - w / 2,
+        y: pageSize.h * 0.5 - h / 2,
+        w,
+        h,
+        dataUrl: item.dataUrl,
+        natW: item.natW,
+        natH: item.natH,
+      }
+      setAnnos((prev) => [...prev, a])
+      setSelected(a.id)
+    } else if (item.kind === 'date') {
+      const a: DateAnno = {
+        id: uid('d'),
+        type: 'date',
+        page,
+        x: pageSize.w * 0.5 - 60,
+        y: pageSize.h * 0.5,
+        text: item.text,
+        value: item.value,
+        size: item.size,
+        color: item.color,
+      }
+      setAnnos((prev) => [...prev, a])
+      setSelected(a.id)
+    } else {
+      const a: TextAnno = {
+        id: uid('t'),
+        type: 'text',
+        page,
+        x: pageSize.w * 0.5 - 60,
+        y: pageSize.h * 0.5,
+        text: item.text,
+        size: item.size,
+        color: item.color,
+      }
+      setAnnos((prev) => [...prev, a])
+      setSelected(a.id)
+    }
+  }
+
+  function deleteLibraryItem(id: string) {
+    removeLibraryItem(id)
+    setLibrary(loadLibrary())
   }
 
   // --- Drag & resize on the overlay ---
@@ -186,7 +295,7 @@ export function Editor() {
         const p = pages[a.page - 1]
         if (!p) continue
         const ph = p.getHeight()
-        if (a.type === 'text') {
+        if (a.type !== 'sig') {
           const sizePt = a.size / scale
           const xPt = a.x / scale
           const c = hexToRgb(a.color)
@@ -262,7 +371,7 @@ export function Editor() {
             <canvas ref={canvasRef} />
             <div className="overlay" onPointerDown={() => setSelected(null)}>
               {pageAnnos.map((a) =>
-                a.type === 'text' ? (
+                a.type !== 'sig' ? (
                   <div
                     key={a.id}
                     className={`anno ${selected === a.id ? 'selected' : ''}`}
@@ -310,12 +419,39 @@ export function Editor() {
           <h3>Add</h3>
           <div className="row" style={{ marginBottom: 16 }}>
             <button className="btn" onClick={addText}>＋ Text</button>
+            <button className="btn" onClick={addDate}>📅 Date</button>
             <button className="btn" onClick={() => setShowSig(true)}>✍️ Signature</button>
           </div>
 
+          {library.length > 0 && (
+            <>
+              <h3>Library</h3>
+              <div className="field" style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {library.map((item) => (
+                  <div className="libitem" key={item.id}>
+                    <span className="name">
+                      {item.kind === 'sig' ? '✍️' : item.kind === 'date' ? '📅' : '📝'} {item.name}
+                    </span>
+                    <button className="iconbtn" title="Insert" onClick={() => insertFromLibrary(item)}>
+                      ＋
+                    </button>
+                    <button className="iconbtn" title="Delete" onClick={() => deleteLibraryItem(item.id)}>
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+
           {sel?.type === 'text' && (
             <>
-              <h3>Text</h3>
+              <div className="row" style={{ justifyContent: 'space-between' }}>
+                <h3>Text</h3>
+                <button className="iconbtn" title="Save to library" onClick={() => saveToLibrary(sel)}>
+                  💾
+                </button>
+              </div>
               <div className="field">
                 <label>Content</label>
                 <textarea
@@ -347,14 +483,60 @@ export function Editor() {
             </>
           )}
 
+          {sel?.type === 'date' && (
+            <>
+              <div className="row" style={{ justifyContent: 'space-between' }}>
+                <h3>Date</h3>
+                <button className="iconbtn" title="Save to library" onClick={() => saveToLibrary(sel)}>
+                  💾
+                </button>
+              </div>
+              <div className="field">
+                <label>Date</label>
+                <input
+                  type="date"
+                  value={sel.value}
+                  onChange={(e) =>
+                    update(sel.id, { value: e.target.value, text: formatDate(e.target.value) } as Partial<Anno>)
+                  }
+                />
+              </div>
+              <div className="row">
+                <div className="field" style={{ flex: 1 }}>
+                  <label>Size</label>
+                  <input
+                    type="number"
+                    min={6}
+                    max={400}
+                    value={Math.round(sel.size)}
+                    onChange={(e) => update(sel.id, { size: Number(e.target.value) } as Partial<Anno>)}
+                  />
+                </div>
+                <div className="field">
+                  <label>Color</label>
+                  <input
+                    type="color"
+                    value={sel.color}
+                    onChange={(e) => update(sel.id, { color: e.target.value } as Partial<Anno>)}
+                  />
+                </div>
+              </div>
+            </>
+          )}
+
           {sel?.type === 'sig' && (
             <>
-              <h3>Signature</h3>
+              <div className="row" style={{ justifyContent: 'space-between' }}>
+                <h3>Signature</h3>
+                <button className="iconbtn" title="Save to library" onClick={() => saveToLibrary(sel)}>
+                  💾
+                </button>
+              </div>
               <p className="status">Drag to move, or use the corner handle to resize.</p>
             </>
           )}
 
-          {!sel && <p className="status">Add text or a signature, then drag it onto the page.</p>}
+          {!sel && <p className="status">Add text, a date, or a signature, then drag it onto the page.</p>}
         </aside>
       </div>
 
