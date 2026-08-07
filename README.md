@@ -2,24 +2,24 @@
 
 A client-side PDF SaaS. Everything runs in the browser — files never leave the device, so there are no server or storage costs.
 
-## 💾 Download (no install, no admin needed)
+## 💾 Download (no admin needed)
 
-Grab the latest zip from [Releases](../../releases/latest): `Stackable-PDF-Tools-Windows.zip`.
+Grab the latest release from [Releases](../../releases/latest). Two options, both install with a **regular Windows account — no admin rights, no IT approval**:
 
-Unzip it anywhere and double-click **`Stackable PDF Tools.exe`** inside. That's it — no installer runs, nothing writes outside that folder, so it works on locked-down/admin-restricted Windows accounts.
+- **`Stackable PDF Tools Setup <version>.exe`** (recommended) — installs to your own user profile (`perMachine: false`, no UAC prompt) and **updates itself automatically**: it checks GitHub Releases on launch, downloads new versions in the background, and offers to restart into them. No admin approval needed for updates either — it's writing to the same per-user folder it installed into.
+- **`Stackable-PDF-Tools-Windows.zip`** — for environments that won't let you run *any* installer. Unzip anywhere and double-click `Stackable PDF Tools.exe` inside; nothing writes outside that folder. Trade-off: no auto-update — the in-app banner still tells you when a new version is out, but you redownload the zip yourself.
 
 > First launch, Windows SmartScreen may say "Windows protected your PC" (because the app isn't code-signed by a paid certificate). Click **More info → Run anyway**. This is normal for apps shared outside the Microsoft Store.
 
-### Building the zip yourself
+### Building it yourself
 
 ```bash
 npm install
-npm run app:pack   # → release/Stackable-PDF-Tools-Windows.zip
+npm run app:build   # → release/Stackable PDF Tools Setup <version>.exe (+ latest.yml for auto-update)
+npm run app:pack    # → release/Stackable-PDF-Tools-Windows.zip (portable, no auto-update)
 ```
 
-This works on a normal Windows account — **no admin rights or Developer Mode needed.** (`app:pack` builds the unpacked app with `electron-builder --dir` and zips it; see [`scripts/pack-win.mjs`](scripts/pack-win.mjs).)
-
-Want a traditional installer instead (adds Start Menu/desktop shortcuts)? `npm run app:build` produces `release/Stackable PDF Tools Setup 0.1.0.exe`. It's also non-admin (`perMachine: false`), but it does require running an install step, which the zip avoids.
+Both work on a normal Windows account — **no admin rights or Developer Mode needed.** `app:build` also needs `scripts/prepare-wincodesign.mjs` to run first (handled automatically by the script) to work around a Windows symlink-privilege quirk in electron-builder's code-signing toolkit download.
 
 To try the app instantly without packaging anything: `npm run app:preview` opens it in its own desktop window.
 

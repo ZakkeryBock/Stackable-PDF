@@ -3,6 +3,7 @@
 // they do in a browser) and shows it in a native window.
 const { app, BrowserWindow, shell, dialog } = require('electron')
 const path = require('path')
+const { autoUpdater } = require('electron-updater')
 const { startServer } = require('./server.cjs')
 
 const isDev = !!process.env.ELECTRON_DEV
@@ -44,7 +45,39 @@ async function createWindow() {
   }
 }
 
-app.whenReady().then(createWindow)
+// Per-user NSIS install (perMachine: false) means quitAndInstall never needs
+// admin approval — the update just overwrites files under the user's own
+// AppData, same as the original install did.
+function setupAutoUpdate() {
+  if (!app.isPackaged) return
+
+  autoUpdater.autoDownload = true
+  autoUpdater.autoInstallOnAppQuit = true
+
+  autoUpdater.on('update-downloaded', (info) => {
+    dialog
+      .showMessageBox({
+        type: 'info',
+        buttons: ['Restart now', 'Later'],
+        defaultId: 0,
+        title: 'Update ready',
+        message: `Stackable PDF Tools ${info.version} is downloaded.`,
+        detail: 'Restart now to install it, or it installs automatically next time you quit.',
+      })
+      .then(({ response }) => {
+        if (response === 0) autoUpdater.quitAndInstall(false, true)
+      })
+  })
+
+  autoUpdater.checkForUpdates().catch(() => {
+    // No network / no published release yet — silently skip, the in-app banner covers this.
+  })
+}
+
+app.whenReady().then(() => {
+  createWindow()
+  setupAutoUpdate()
+})
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

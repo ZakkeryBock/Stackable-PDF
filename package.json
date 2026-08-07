@@ -17,6 +17,7 @@
     "app:build": "node scripts/prepare-wincodesign.mjs && vite build && electron-builder"
   },
   "dependencies": {
+    "electron-updater": "^6.8.9",
     "jszip": "^3.10.1",
     "pdf-lib": "^1.17.1",
     "pdfjs-dist": "^4.7.76",
@@ -38,6 +39,11 @@
     "productName": "Stackable PDF Tools",
     "directories": {
       "output": "release"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "ZakkeryBock",
+      "repo": "Stackable-PDF"
     },
     "files": [
       "dist/**/*",
