@@ -57,6 +57,7 @@
       ]
     },
     "nsis": {
+      "artifactName": "Stackable-PDF-Tools-Setup-${version}.${ext}",
       "oneClick": false,
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,

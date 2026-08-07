@@ -6,7 +6,7 @@ A client-side PDF SaaS. Everything runs in the browser — files never leave the
 
 Grab the latest release from [Releases](../../releases/latest). Two options, both install with a **regular Windows account — no admin rights, no IT approval**:
 
-- **`Stackable PDF Tools Setup <version>.exe`** (recommended) — installs to your own user profile (`perMachine: false`, no UAC prompt) and **updates itself automatically**: it checks GitHub Releases on launch, downloads new versions in the background, and offers to restart into them. No admin approval needed for updates either — it's writing to the same per-user folder it installed into.
+- **`Stackable-PDF-Tools-Setup-<version>.exe`** (recommended) — installs to your own user profile (`perMachine: false`, no UAC prompt) and **updates itself automatically**: it checks GitHub Releases on launch, downloads new versions in the background, and offers to restart into them. No admin approval needed for updates either — it's writing to the same per-user folder it installed into.
 - **`Stackable-PDF-Tools-Windows.zip`** — for environments that won't let you run *any* installer. Unzip anywhere and double-click `Stackable PDF Tools.exe` inside; nothing writes outside that folder. Trade-off: no auto-update — the in-app banner still tells you when a new version is out, but you redownload the zip yourself.
 
 > First launch, Windows SmartScreen may say "Windows protected your PC" (because the app isn't code-signed by a paid certificate). Click **More info → Run anyway**. This is normal for apps shared outside the Microsoft Store.
@@ -15,7 +15,7 @@ Grab the latest release from [Releases](../../releases/latest). Two options, bot
 
 ```bash
 npm install
-npm run app:build   # → release/Stackable PDF Tools Setup <version>.exe (+ latest.yml for auto-update)
+npm run app:build   # → release/Stackable-PDF-Tools-Setup-<version>.exe (+ latest.yml for auto-update)
 npm run app:pack    # → release/Stackable-PDF-Tools-Windows.zip (portable, no auto-update)
 ```
 
