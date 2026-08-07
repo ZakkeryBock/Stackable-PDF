@@ -1,13 +1,15 @@
 // Electron main process. Serves the built app over a local loopback HTTP server
 // (so PDF.js web workers, ES modules, and blob downloads all behave exactly like
 // they do in a browser) and shows it in a native window.
-const { app, BrowserWindow, shell, dialog } = require('electron')
+const { app, BrowserWindow, shell, dialog, ipcMain } = require('electron')
 const path = require('path')
 const { autoUpdater } = require('electron-updater')
 const { startServer } = require('./server.cjs')
 
 const isDev = !!process.env.ELECTRON_DEV
 const DIST = path.join(__dirname, '..', 'dist')
+
+let mainWindow = null
 
 async function createWindow() {
   const win = new BrowserWindow({
@@ -21,7 +23,12 @@ async function createWindow() {
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, 'preload.cjs'),
     },
+  })
+  mainWindow = win
+  win.on('closed', () => {
+    if (mainWindow === win) mainWindow = null
   })
 
   win.once('ready-to-show', () => win.show())
@@ -54,25 +61,24 @@ function setupAutoUpdate() {
   autoUpdater.autoDownload = true
   autoUpdater.autoInstallOnAppQuit = true
 
+  autoUpdater.on('update-available', (info) => {
+    mainWindow?.webContents.send('update-available', { version: info.version })
+  })
   autoUpdater.on('update-downloaded', (info) => {
-    dialog
-      .showMessageBox({
-        type: 'info',
-        buttons: ['Restart now', 'Later'],
-        defaultId: 0,
-        title: 'Update ready',
-        message: `Stackable PDF Tools ${info.version} is downloaded.`,
-        detail: 'Restart now to install it, or it installs automatically next time you quit.',
-      })
-      .then(({ response }) => {
-        if (response === 0) autoUpdater.quitAndInstall(false, true)
-      })
+    mainWindow?.webContents.send('update-downloaded', { version: info.version })
+  })
+  autoUpdater.on('error', (err) => {
+    mainWindow?.webContents.send('update-error', String(err))
   })
 
   autoUpdater.checkForUpdates().catch(() => {
     // No network / no published release yet — silently skip, the in-app banner covers this.
   })
 }
+
+// Silent + forceRunAfter: same no-admin-needed install as the update check itself
+// (per-user NSIS), just triggered by the in-app button instead of app quit.
+ipcMain.on('install-update', () => autoUpdater.quitAndInstall(false, true))
 
 app.whenReady().then(() => {
   createWindow()

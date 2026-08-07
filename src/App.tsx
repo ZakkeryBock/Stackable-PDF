@@ -15,11 +15,26 @@ const TABS: { id: Tool; label: string; icon: string }[] = [
 
 const DISMISSED_KEY = 'pdf-suite-dismissed-update'
 
+type AppUpdateState =
+  | { status: 'idle' }
+  | { status: 'downloading'; version: string }
+  | { status: 'ready'; version: string }
+
 export function App() {
   const [tool, setTool] = useState<Tool>('convert')
   const [update, setUpdate] = useState<UpdateInfo | null>(null)
+  const [appUpdate, setAppUpdate] = useState<AppUpdateState>({ status: 'idle' })
+  const [appUpdateDismissed, setAppUpdateDismissed] = useState(false)
 
   useEffect(() => {
+    // Desktop app: main process downloads in the background via electron-updater;
+    // this just reflects that state so the Restart & Update button can fire when ready.
+    if (window.electronAPI) {
+      window.electronAPI.onUpdateAvailable((info) => setAppUpdate({ status: 'downloading', version: info.version }))
+      window.electronAPI.onUpdateDownloaded((info) => setAppUpdate({ status: 'ready', version: info.version }))
+      return
+    }
+    // Browser / dev fallback: no electron-updater, just point at the release page.
     checkForUpdate(pkg.version).then((info) => {
       if (info && localStorage.getItem(DISMISSED_KEY) !== info.version) setUpdate(info)
     })
@@ -32,6 +47,23 @@ export function App() {
 
   return (
     <div className="app">
+      {appUpdate.status !== 'idle' && !appUpdateDismissed && (
+        <div className="update-banner row">
+          {appUpdate.status === 'downloading' && <span>⬇️ Downloading version {appUpdate.version}…</span>}
+          {appUpdate.status === 'ready' && (
+            <>
+              <span>🚀 Version {appUpdate.version} is ready.</span>
+              <button className="btn primary" onClick={() => window.electronAPI!.installUpdate()}>
+                Restart & Update
+              </button>
+            </>
+          )}
+          <div className="spacer" />
+          <button className="iconbtn" title="Dismiss" onClick={() => setAppUpdateDismissed(true)}>
+            ✕
+          </button>
+        </div>
+      )}
       {update && (
         <div className="update-banner row">
           <span>🚀 Version {update.version} is available.</span>
